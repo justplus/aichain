@@ -1,0 +1,35 @@
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Dependencies and package-manager output
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Test/runtime output
+dist/
+build/
+coverage/
+tmp/
+temp/
+logs/
+*.log
+
+# Generated AIChain test output
+*.pcm.out
+*.wav.out
+*.opus.out
+*.response.json
