@@ -66,6 +66,15 @@ def load_profile(mode: str) -> dict:
             "appIdEnv": "AICHAIN_APP_ID",
             "appKeyEnv": "AICHAIN_APP_KEY",
             "endpointEnv": "AICHAIN_ENDPOINT",
+            "snEnv": "AICHAIN_SN",
+        },
+        "android": {
+            "language": None,
+            "ui": None,
+            "minSdk": None,
+            "targetSdk": None,
+            "credentialStrategy": None,
+            "testStrategy": None,
         },
     }
 
@@ -153,11 +162,8 @@ def require_runtime(profile: dict) -> dict:
 
 def resolve_endpoint(region_code: str | None) -> str | None:
     endpoints = {
-        "cn": "wss://aichain-sh.xfyun.cn",
         "shanghai": "wss://aichain-sh.xfyun.cn",
-        "overseas": "wss://aichain.iflyoversea.com",
-        "abroad": "wss://aichain.iflyoversea.com",
-        "saas": "wss://aichain.xfyun.cn",
+        "us": "wss://aichain-us.iflyoversea.com",
         "rus": "wss://aichain-rus.iflyoversea.com",
     }
     return endpoints.get(str(region_code or "cn").lower())

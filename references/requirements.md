@@ -87,6 +87,13 @@ AIChainProfile:
     appKeyEnv: AICHAIN_APP_KEY
     endpointEnv: AICHAIN_ENDPOINT
     snEnv: AICHAIN_SN
+  android:
+    language: kotlin | java | null
+    ui: compose | views | service | hybrid | null
+    minSdk: 21 | <project-min-sdk> | null
+    targetSdk: 34 | <project-target-sdk> | null
+    credentialStrategy: local_properties_build_config | gradle_secrets | remote_config | encrypted_storage | existing | null
+    testStrategy: instrumented | debug_screen | unit_adapter | null
 ```
 
 ## Normalization
@@ -106,3 +113,5 @@ AIChainProfile:
 - If TTS is true and the developer selects `不确定`, set `tts.chunk` to `true`.
 - If audio is irrelevant to the selected capability mix, set audio input/output to `null`.
 - Region codes are not endpoints. Resolve selected region from official docs first, then `references/region-endpoints.md`. Ask the user for endpoint only when neither source has a mapping.
+- If integration is not `android_sdk`, set `android` fields to `null` or omit the block.
+- For Android SDK integrations, fill `android` fields from project detection first. Ask only when the value affects code generation or testing and cannot be inferred from project files.

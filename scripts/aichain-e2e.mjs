@@ -53,6 +53,15 @@ function loadProfile() {
       appIdEnv: "AICHAIN_APP_ID",
       appKeyEnv: "AICHAIN_APP_KEY",
       endpointEnv: "AICHAIN_ENDPOINT",
+      snEnv: "AICHAIN_SN",
+    },
+    android: {
+      language: null,
+      ui: null,
+      minSdk: null,
+      targetSdk: null,
+      credentialStrategy: null,
+      testStrategy: null,
     },
   };
 }

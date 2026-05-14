@@ -19,6 +19,7 @@ Do not write integration code until an `AIChainProfile` is complete.
    - Skip questions already answered by the user or project config.
    - Skip conditional questions that do not apply.
 4. Normalize answers into an `AIChainProfile` YAML block and show it before coding.
+   - For Android SDK integrations, include `AIChainProfile.android` from project detection before coding.
 5. Read `references/official-sources.md`, then try to refresh the relevant official Yuque document before using exact endpoint, auth, event, package, class, method, or parameter names. If the official page cannot be accessed or parsed, use the mapped `references/fallback/*-source.md` file and continue.
 6. Read only the implementation reference matching the chosen integration path:
    - WebAPI: `references/webapi.md`
