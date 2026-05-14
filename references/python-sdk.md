@@ -1,51 +1,52 @@
-# AIChain Python SDK Reference
+# Python SDK Integration Notes
 
-Official source: https://www.yuque.com/aiui_open_platform/knowledge/kivkb90gkeouobbe
+Use this file only when `AIChainProfile.integration` is `python_sdk`.
 
-Observed public metadata:
+If the official Yuque Python SDK page is not readable, read `references/fallback/python-sdk-source.md` before coding.
 
-- Title: Python SDK接入
-- Created: 2026-03-26 14:35:06
-- Updated: 2026-05-11 10:00:00
-- Description indicates an AIChain Python SDK integration guide.
+## Project Detection
 
-## When to Use
+Before editing, identify:
 
-Use this reference when the profile has:
+- dependency manager: uv, poetry, pip, pip-tools, conda
+- runtime: script, FastAPI, Flask, Django, worker, notebook, or test utility
+- sync or async conventions
+- existing config/secrets pattern
+- test runner: pytest, unittest, no runner
 
-```yaml
-integration: python_sdk
+## Implementation
+
+- Install the official AIChain Python SDK package named by the Yuque document.
+- Keep a thin project adapter around SDK calls.
+- Read `app_id`, `app_key`, base host endpoint, and device `sn` from environment or existing settings.
+- Resolve the base host endpoint from the selected region using official docs or `references/region-endpoints.md`; ask for endpoint only for an unmapped custom region.
+- Convert `AIChainProfile` into the SDK's documented configuration object.
+- Keep async code async when the host project already uses async.
+- Surface auth, transport, parameter, service, and timeout failures distinctly where practical.
+
+## Expected Adapter Surface
+
+Adapt names to the host project, but keep these responsibilities visible:
+
+```python
+connect()
+send_text(text: str)
+send_audio(data: bytes | Iterable[bytes])
+send_image(data: bytes, prompt: str, mime_type: str = "image/png")
+interrupt(reason: str | None = None)
+close()
 ```
 
-## Implementation Checklist
+Implement only methods required by the selected capabilities.
 
-- Re-check the official source before coding package name, import path, client options, and callback/event names.
-- Detect the host framework before editing: script, FastAPI, Flask, Django, worker, or test suite.
-- Add the documented SDK dependency through the existing dependency manager.
-- Initialize a client from environment/config values, using the endpoint matching the selected region code; default region to `cn` when unset.
-- Map profile fields into SDK configuration:
-  - modelId: default to `b16924f42ffe4fd895d4ba4778278bc3`.
-  - capabilities: STT/NLU/TTS combination.
-  - language: only for recognition.
-  - duplex and VAD: only for recognition.
-  - Pure acoustic VAD default: `minSilenceDuration=600ms`.
-  - Acoustic + semantic VAD default: `minSilenceDuration=300ms` and `minEndpointingDelay=250ms`.
-  - interrupt: forced, semantic, or disabled.
-  - image understanding: only include image input when enabled.
-  - chunk_tts: only for synthesis; enable it when downstream playback buffers are small and smaller TTS chunks are preferred.
-  - audio input/output codec: choose bundled PCM or Opus fixture based on the profile.
-- Keep blocking and async code consistent with the host app.
-- Expose clear errors for auth failures, invalid parameters, transport failures, and service errors.
+## Testing Hook
 
-## Required Runtime Values
+Add a pytest or script entry that can run with:
 
-Ask only when missing:
+```bash
+AICHAIN_PROFILE_FILE=./aichain.profile.json python3 scripts/aichain_e2e.py --mode sdk-python
+```
 
-- endpoint
-- appId or documented application identifier
-- apiKey/token or documented credential
-- userId/deviceId if required by the official source
+Set `AICHAIN_PYTHON_SDK_PACKAGE` only if the generic runner is used directly. Prefer the project's real integration test once code has been generated.
 
-## Testing
-
-Use `scripts/smoke-python.py` as a real-service smoke-test harness after aligning SDK import and method names with the official source.
+Known SDK constructor fields include `app_id`, `app_key`, `host`, `sn`, `scene`, `secure`, reconnect options, and logging options.

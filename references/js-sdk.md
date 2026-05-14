@@ -1,51 +1,52 @@
-# AIChain JavaScript SDK Reference
+# JavaScript SDK Integration Notes
 
-Official source: https://www.yuque.com/aiui_open_platform/knowledge/uwyv0442g4050ipg
+Use this file only when `AIChainProfile.integration` is `js_sdk`.
 
-Observed public metadata:
+If the official Yuque JS SDK page is not readable, read `references/fallback/js-sdk-source.md` before coding.
 
-- Title: JS SDK接入
-- Created: 2026-03-26 14:35:52
-- Updated: 2026-05-11 10:00:27
-- Description indicates a JavaScript/TypeScript AIChain SDK integration guide.
+## Project Detection
 
-## When to Use
+Before editing, identify:
 
-Use this reference when the profile has:
+- package manager: npm, pnpm, yarn, bun
+- runtime: browser, Node.js, SSR, Electron, React Native, or hybrid
+- TypeScript or JavaScript
+- existing config/secrets pattern
+- existing test runner
 
-```yaml
-integration: js_sdk
+## Implementation
+
+- Install the official AIChain JavaScript SDK package named by the Yuque document.
+- Create a small adapter module rather than spreading SDK calls through UI or route handlers.
+- Read `appId`, `appKey`, base host endpoint, and device `sn` from the host config.
+- Resolve the base host endpoint from the selected region using official docs or `references/region-endpoints.md`; ask for endpoint only for an unmapped custom region.
+- Convert `AIChainProfile` into the SDK's documented configuration object.
+- Browser code must handle microphone permission, stream cleanup, and component unmount.
+- Node.js code must avoid browser APIs and stream files/buffers from server-side sources.
+
+## Expected Adapter Surface
+
+Adapt names to the host project, but keep these responsibilities visible:
+
+```ts
+connect(): Promise<void>
+sendText(text: string): Promise<AIChainResult>
+sendAudio(input: AsyncIterable<Uint8Array> | Uint8Array): Promise<AIChainResult>
+sendImage(input: Uint8Array | Blob, prompt: string): Promise<AIChainResult>
+interrupt(reason?: string): Promise<void>
+close(): Promise<void>
 ```
 
-## Implementation Checklist
+Implement only methods required by the selected capabilities.
 
-- Re-check the official source before coding package name, import path, constructor options, and event names.
-- Detect whether the host project is browser, Node.js, or framework-based before editing.
-- Install or add the documented SDK dependency using the project's package manager.
-- Initialize the SDK with the endpoint matching the selected region code and credentials; default region to `cn` when unset.
-- Map profile fields into SDK configuration:
-  - modelId: default to `b16924f42ffe4fd895d4ba4778278bc3`.
-  - capabilities: STT/NLU/TTS combination.
-  - language: only for recognition.
-  - duplex and VAD: only for recognition.
-  - Pure acoustic VAD default: `minSilenceDuration=600ms`.
-  - Acoustic + semantic VAD default: `minSilenceDuration=300ms` and `minEndpointingDelay=250ms`.
-  - interrupt: forced, semantic, or disabled.
-  - image understanding: only include image input when enabled.
-  - chunk_tts: only for synthesis; enable it when device playback buffers are small and smaller TTS chunks are preferred.
-  - audio input/output codec: configure capture, frame encoding, decoding, and playback.
-- Browser integrations should use existing UI state management and microphone permission patterns.
-- Node.js integrations should stream local audio or server-side audio buffers without browser APIs.
+## Testing Hook
 
-## Required Runtime Values
+Add a script or test that can run with:
 
-Ask only when missing:
+```bash
+AICHAIN_PROFILE_FILE=./aichain.profile.json node scripts/aichain-e2e.mjs --mode sdk-js
+```
 
-- endpoint
-- appId or documented application identifier
-- apiKey/token or documented credential
-- userId/deviceId if required by the official source
+Set `AICHAIN_JS_SDK_PACKAGE` only if the generic runner is used directly. Prefer the project's real integration test once code has been generated.
 
-## Testing
-
-Use `scripts/smoke-js.mjs` as a real-service smoke-test harness after aligning SDK import and method names with the official source.
+Known SDK constructor fields include `appId`, `appKey`, `host`, `sn`, `scene`, `secure`, `autoReconnect`, and log/reconnect options.

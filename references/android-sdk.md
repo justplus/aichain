@@ -1,52 +1,45 @@
-# AIChain Android SDK Reference
+# Android SDK Integration Notes
 
-Official source: https://www.yuque.com/aiui_open_platform/knowledge/mbq79tvlq9vnbia5
+Use this file only when `AIChainProfile.integration` is `android_sdk`.
 
-Observed public metadata:
+If the official Yuque Android SDK page is not readable, read `references/fallback/android-sdk-source.md` before coding.
 
-- Title: Android SDK接入
-- Created: 2026-03-26 14:33:40
-- Updated: 2026-05-11 09:59:41
-- Description indicates an AIChain Android SDK integration guide.
+## Project Detection
 
-## When to Use
+Before editing, identify:
 
-Use this reference when the profile has:
+- Kotlin or Java
+- Gradle convention: version catalog, buildSrc, Kotlin DSL, Groovy DSL
+- UI stack: Compose, Views, hybrid WebView, background service
+- minimum SDK and target SDK
+- existing permission request flow
+- existing audio recorder/player utilities
 
-```yaml
-integration: android_sdk
-```
+## Implementation
 
-## Implementation Checklist
+- Add the official AIChain Android SDK dependency and repository exactly as documented.
+- Store endpoint and credentials in the app's existing secret mechanism, such as Gradle properties, BuildConfig, remote config, or encrypted storage.
+- Resolve endpoint from the selected region using official docs or `references/region-endpoints.md`; ask for endpoint only for an unmapped custom region.
+- Add microphone, network, foreground service, media, or camera permissions only when selected capabilities require them.
+- Map `AIChainProfile` to the SDK's documented configuration object.
+- Keep recorder, network session, playback, interruption, lifecycle cleanup, and error state separate.
+- Release microphone, player, and network resources on lifecycle stop/destroy according to the host app's pattern.
 
-- Re-check the official source before coding Maven coordinates, Gradle configuration, permissions, initialization APIs, and callback names.
-- Detect whether the project uses Kotlin or Java and whether it uses Android Views, Compose, or a hybrid WebView.
-- Add SDK dependency and required repository configuration to Gradle using existing project conventions.
-- Add microphone, network, and storage/media permissions only when needed.
-- Initialize the SDK from `BuildConfig`, `local.properties`, or the project's existing secret mechanism, using the endpoint matching the selected region code; default region to `cn` when unset.
-- Map profile fields into SDK configuration:
-  - modelId: default to `b16924f42ffe4fd895d4ba4778278bc3`.
-  - capabilities: STT/NLU/TTS combination.
-  - language: only for recognition.
-  - duplex and VAD: only for recognition.
-  - Pure acoustic VAD default: `minSilenceDuration=600ms`.
-  - Acoustic + semantic VAD default: `minSilenceDuration=300ms` and `minEndpointingDelay=250ms`.
-  - interrupt: forced, semantic, or disabled.
-  - image understanding: only include image input when enabled.
-  - chunk_tts: only for synthesis; enable it for phones, embedded devices, or other clients with small playback buffers.
-  - audio input/output codec: configure recorder and player pipeline.
-- For full-duplex recognition, separate recording, streaming, receiving, playback, and interruption state.
-- For half-duplex recognition, make end-of-speech/end-of-input explicit.
+## Full-Duplex Mobile Requirements
 
-## Required Runtime Values
+- Capture audio on a background-safe path.
+- Upload frames without blocking UI.
+- Receive ASR/NLU/TTS callbacks while capture may still be active.
+- Stop or duck playback according to the selected interruption strategy.
+- Recover cleanly from permission denial, network loss, and SDK error callbacks.
 
-Ask only when missing:
+## Testing Hook
 
-- endpoint
-- appId or documented application identifier
-- apiKey/token or documented credential
-- userId/deviceId if required by the official source
+Prefer an Android instrumented smoke test or a debug screen wired to bundled fixtures copied into `androidTest/assets` or `src/debug/assets`.
 
-## Testing
+Minimum validation:
 
-Prefer Android instrumented or debug-app smoke tests for microphone/playback paths. Reuse bundled fixtures where the host app can load assets; otherwise copy equivalent fixtures into Android test resources.
+- SDK initializes with selected endpoint and credentials.
+- Text fixture returns an NLU/TTS result when those capabilities are selected.
+- Audio fixture returns expected ASR terms when ASR is selected.
+- Image fixture returns an answer containing the expected term when image understanding is selected.

@@ -1,54 +1,66 @@
-# AIChain WebAPI Reference
+# WebAPI Integration Notes
 
-Official source: https://www.yuque.com/aiui_open_platform/knowledge/hf7xdluok2yz3dib
+Use this file only when `AIChainProfile.integration` is `webapi`.
 
-Observed public metadata:
+If the official Yuque WebAPI page is not readable, read `references/fallback/webapi-source.md` before coding. If that fallback does not contain WebAPI content, report the mismatch and use this concise reference for the known protocol details.
 
-- Title: API接口文档
-- Created: 2026-02-01 11:20:31
-- Updated: 2026-05-07 17:02:08
-- Description indicates AIChain WebSocket API v2.1, connection-level authentication, and event-based parameter transfer such as `session.config` and conversation events.
-- Stated capabilities include speech recognition (STT), semantic understanding (NLU), text-to-speech (TTS), and combinations of those capabilities.
+## Shape of the Implementation
 
-## When to Use
+- Add a small AIChain client module around the documented WebSocket/API protocol.
+- Read `AICHAIN_ENDPOINT`, `AICHAIN_APP_ID`, `AICHAIN_APP_KEY`, and `AICHAIN_SN` from environment or the host project's secret system.
+- Derive `AICHAIN_ENDPOINT` from the selected region using official docs or `references/region-endpoints.md`; ask for endpoint only for an unmapped custom region.
+- Build the session configuration from `AIChainProfile`.
+- Open `wss://<host>/v1/chat/<appId>?curtime=<ts>&checksum=<sha256(appKey+ts)>&sn=<sn>&scene=<scene>`.
+- Wait for `session.created`, send `session.config`, wait for `session.configed`, then send user input with `conversation.user.append`.
+- Use `event.cid_end` as the normal end-of-turn marker.
+- Expose callbacks or events for partial text, final text, TTS audio, image/NLU result, interruption, errors, and close.
 
-Use this reference when the profile has:
+## Capability Mapping
 
-```yaml
-integration: webapi
+- ASR: stream or upload audio using `profile.audio.input`; include language, duplex, and VAD only when ASR is selected.
+- Pure acoustic VAD uses `minSilenceDuration=600ms`.
+- Acoustic + semantic VAD uses `minSilenceDuration=300ms` and `minEndpointingDelay=250ms`.
+- NLU: send text or structured input and surface the final semantic response.
+- TTS: request synthesis and handle returned audio using `profile.audio.output`; include `chunk_tts` from `profile.tts.chunk` when documented, defaulting to enabled when the developer chose "不确定".
+- Image: encode and send image input only when `profile.capabilities.image` is true.
+
+## Core Events
+
+- `session.created`: server assigns `sid`.
+- `session.config`: client sends `sid` and session config.
+- `session.configed`: server confirms config.
+- `conversation.user.append`: client sends `{ sid, cid, items, endFlag }`.
+- `stt.result`: ASR partial/final result.
+- `nlu.answer`: NLU answer chunks.
+- `tts.audio`: TTS audio chunks.
+- `response.cancel`: client cancellation for interruption.
+- `ping` / `pong`: heartbeat.
+- `event.cid_end`: response turn complete.
+- `session.error`: business/protocol error.
+
+## Full-Duplex State Model
+
+Represent states explicitly:
+
+```text
+idle -> connecting -> configuring -> listening -> speaking -> closing -> closed
+                          |              |           |
+                          v              v           v
+                        failed        interrupted   failed
 ```
 
-## Implementation Checklist
+Full-duplex clients must keep audio upload and server-event receive loops independent. Playback interruption must not close the network connection unless the official protocol requires it.
 
-- Re-check the official source before coding exact endpoint, auth, event names, and parameter names.
-- Treat `region` as an endpoint selection key. `cn`, `us`, and any other supported region code must map to the corresponding AIChain endpoint.
-- Create a WebSocket client with connection-level authentication.
-- Send session configuration before sending user input.
-- Map the profile to WebAPI configuration:
-  - `region`: choose the endpoint that matches the selected region code; default to `cn` when unset.
-  - `modelId`: default to `b16924f42ffe4fd895d4ba4778278bc3`.
-  - `capabilities`: enable STT, NLU, TTS, or combinations.
-  - `language`: set recognition language only when STT is enabled.
-  - `duplex` and `vad`: configure half-duplex, acoustic VAD, or acoustic + semantic VAD only when STT is enabled.
-  - Pure acoustic VAD default: `minSilenceDuration=600ms`.
-  - Acoustic + semantic VAD default: `minSilenceDuration=300ms` and `minEndpointingDelay=250ms`.
-  - `interrupt`: map to forced interruption, semantic interruption, or no interruption.
-  - `image_understanding`: include image payloads only when enabled.
-  - `chunk_tts`: include this optional synthesis parameter when TTS is enabled; enable it for small playback buffers to reduce per-chunk audio size.
-  - `audio.input` and `audio.output`: configure input/output codec and frame handling.
-- Implement event handlers for connection open, configuration ack, partial result, final result, audio output, error, interruption, and close.
-- For full-duplex, keep audio send and event receive independent.
-- For half-duplex, send an explicit end-of-input event after the audio/text payload.
+## Half-Duplex Behavior
 
-## Required Runtime Values
+For half-duplex ASR, provide an explicit end-of-input method after the last audio frame or upload. Do not depend on connection close as the end-of-speech signal unless the official document requires that behavior.
 
-Ask only when missing:
+## Testing Hook
 
-- endpoint
-- appId or documented application identifier
-- apiKey/token or documented credential
-- userId/deviceId if required by the official source
+Prefer adding a host-project test or example that can call the WebAPI client with:
 
-## Testing
+- `assets/text/sample_zh.txt` for NLU/TTS
+- `assets/audio/zh_16k_pcm.wav` or `assets/audio/en_16k_pcm.wav` for ASR
+- `assets/image/apple.png` for image understanding
 
-Use `scripts/smoke-webapi.mjs` for a real-service smoke test after adapting any official event names that differ from the generic script.
+If the exact protocol event names differ from the generic runner, adapt `scripts/aichain-e2e.mjs` inside the project or create a project-local adapter.

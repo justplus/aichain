@@ -1,0 +1,6 @@
+interface:
+  display_name: "AIChain Integration"
+  short_description: "Guided AIChain WebAPI and SDK integration"
+  default_prompt: "Use $aichain-integration to gather requirements, implement AIChain integration, and run end-to-end tests."
+policy:
+  allow_implicit_invocation: true

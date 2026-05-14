@@ -1,1 +1,0 @@
-Hello AIChain. Please recognize this test input and return a concise response.
